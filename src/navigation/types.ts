@@ -3,6 +3,7 @@ export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
   Main: undefined;
+  Browse: undefined;
   FoodDetail: { id: string };
   Payment: undefined;
 };
