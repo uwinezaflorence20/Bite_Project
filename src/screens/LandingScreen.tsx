@@ -33,10 +33,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   image: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   brand: {
     position: 'absolute',
