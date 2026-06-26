@@ -13,6 +13,29 @@ export default function SignUpScreen({ navigation }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSignUp = () => {
+    if (!name.trim()) {
+      setError('Enter your full name');
+      return;
+    }
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
+      setError('Enter a valid email address');
+      return;
+    }
+    if (password.length < 4) {
+      setError('Password must be at least 4 characters');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      navigation.replace('Main');
+    }, 900);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -47,11 +70,13 @@ export default function SignUpScreen({ navigation }: Props) {
           value={password}
           onChangeText={setPassword}
         />
+        {!!error && <Text style={styles.error}>{error}</Text>}
         <PrimaryButton
           label="Sign Up"
           icon="arrow-forward"
           style={styles.button}
-          onPress={() => navigation.replace('Main')}
+          loading={loading}
+          onPress={handleSignUp}
         />
         <Text style={styles.or}>Or</Text>
         <View style={styles.socialRow}>
@@ -111,6 +136,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.black,
     marginBottom: spacing.md,
+  },
+  error: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: colors.danger,
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
   button: {
     marginTop: spacing.xs,
