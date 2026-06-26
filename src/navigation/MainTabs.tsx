@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii } from '../theme/colors';
 import { MainTabParamList } from './types';
+import { useCart } from '../context/CartContext';
 import HomeScreen from '../screens/HomeScreen';
 import CartScreen from '../screens/CartScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
@@ -19,6 +20,8 @@ const icons: Record<keyof MainTabParamList, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function MainTabs() {
+  const { totalCount } = useCart();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -27,13 +30,18 @@ export default function MainTabs() {
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: colors.white,
         tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
+        tabBarBadgeStyle: styles.badge,
         tabBarIcon: ({ color, size }) => (
           <Ionicons name={icons[route.name as keyof MainTabParamList]} size={size} color={color} />
         ),
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Cart" component={CartScreen} />
+      <Tab.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{ tabBarBadge: totalCount > 0 ? totalCount : undefined }}
+      />
       <Tab.Screen name="Favorites" component={FavoritesScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -51,5 +59,10 @@ const styles = {
     backgroundColor: colors.primary,
     borderTopWidth: 0,
     elevation: 0,
+  },
+  badge: {
+    backgroundColor: colors.secondary,
+    color: colors.white,
+    fontSize: 10,
   },
 };

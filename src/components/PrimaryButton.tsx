@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii } from '../theme/colors';
 import { fonts } from '../theme/typography';
@@ -10,20 +10,36 @@ type Props = {
   icon?: keyof typeof Ionicons.glyphMap;
   style?: ViewStyle;
   variant?: 'primary' | 'dark';
+  loading?: boolean;
+  disabled?: boolean;
 };
 
-export default function PrimaryButton({ label, onPress, icon, style, variant = 'primary' }: Props) {
+export default function PrimaryButton({
+  label,
+  onPress,
+  icon,
+  style,
+  variant = 'primary',
+  loading = false,
+  disabled = false,
+}: Props) {
+  const isDisabled = disabled || loading;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={isDisabled ? undefined : onPress}
       style={[
         styles.button,
         { backgroundColor: variant === 'primary' ? colors.primary : colors.black },
+        isDisabled && styles.disabled,
         style,
       ]}
     >
-      {icon && <Ionicons name={icon} size={18} color={colors.white} style={styles.icon} />}
-      <Text style={styles.label}>{label}</Text>
+      {loading ? (
+        <ActivityIndicator color={colors.white} style={styles.icon} />
+      ) : (
+        icon && <Ionicons name={icon} size={18} color={colors.white} style={styles.icon} />
+      )}
+      <Text style={styles.label}>{loading ? 'Please wait...' : label}</Text>
     </Pressable>
   );
 }
@@ -36,6 +52,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     paddingVertical: 14,
     paddingHorizontal: 24,
+  },
+  disabled: {
+    opacity: 0.6,
   },
   icon: {
     marginRight: 8,

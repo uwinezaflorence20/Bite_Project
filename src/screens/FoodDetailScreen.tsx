@@ -1,29 +1,56 @@
 import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, radii, spacing } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { RootStackParamList } from '../navigation/types';
 import { foods } from '../data/food';
+import { useCart } from '../context/CartContext';
+import { useFavorites } from '../context/FavoritesContext';
 import PrimaryButton from '../components/PrimaryButton';
 import ScreenHeader from '../components/ScreenHeader';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FoodDetail'>;
 
-export default function FoodDetailScreen({ route }: Props) {
+export default function FoodDetailScreen({ route, navigation }: Props) {
   const item = foods.find((f) => f.id === route.params.id) ?? foods[0];
-  const [qty, setQty] = useState(2);
+  const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const { addItem } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorite = isFavorite(item.id);
+
+  const handleOrder = () => {
+    setAdding(true);
+    setTimeout(() => {
+      addItem(item, qty);
+      setAdding(false);
+      navigation.navigate('Main', { screen: 'Cart' });
+    }, 700);
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScreenHeader title="" />
+      <ScreenHeader
+        title=""
+        right={
+          <Pressable onPress={() => toggleFavorite(item.id)} hitSlop={8}>
+            <Ionicons
+              name={favorite ? 'heart' : 'heart-outline'}
+              size={22}
+              color={favorite ? colors.primary : colors.black}
+            />
+          </Pressable>
+        }
+      />
       <Image source={{ uri: item.image }} style={styles.image} />
 
       <Text style={styles.title}>{item.code}</Text>
       <View style={styles.metaRow}>
         <Ionicons name="star" size={20} color={colors.star} />
         <Text style={styles.rating}>{item.rating}</Text>
+        <Ionicons name="time-outline" size={16} color={colors.textLight} style={styles.timeIcon} />
         <Text style={styles.time}>{item.time}</Text>
       </View>
 
@@ -37,24 +64,31 @@ export default function FoodDetailScreen({ route }: Props) {
         <View style={styles.spicyKnob} />
       </View>
       <View style={styles.spicyLabels}>
-        <Text style={styles.spicyText}>Mad</Text>
+        <Text style={styles.spicyText}>Mild</Text>
         <Text style={styles.spicyText}>Spicy</Text>
       </View>
 
       <View style={styles.footerRow}>
         <View style={styles.qtyBox}>
-          <Text style={styles.qtyMinus} onPress={() => setQty((q) => Math.max(1, q - 1))}>
-            -
-          </Text>
+          <Pressable onPress={() => setQty((q) => Math.max(1, q - 1))} hitSlop={8}>
+            <Text style={styles.qtyMinus}>-</Text>
+          </Pressable>
           <Text style={styles.qtyValue}>{qty}</Text>
-          <Text style={styles.qtyPlus} onPress={() => setQty((q) => q + 1)}>
-            +
-          </Text>
+          <Pressable onPress={() => setQty((q) => q + 1)} hitSlop={8}>
+            <Text style={styles.qtyPlus}>+</Text>
+          </Pressable>
         </View>
         <Text style={styles.price}>${(item.price * qty).toFixed(2)}</Text>
       </View>
 
-      <PrimaryButton label="Order now" icon="bicycle-outline" variant="dark" style={styles.orderButton} />
+      <PrimaryButton
+        label="Order now"
+        icon="bicycle-outline"
+        variant="dark"
+        loading={adding}
+        style={styles.orderButton}
+        onPress={handleOrder}
+      />
     </ScrollView>
   );
 }
@@ -83,7 +117,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     marginBottom: spacing.md,
   },
   rating: {
@@ -91,11 +125,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.black,
   },
+  timeIcon: {
+    marginLeft: 10,
+  },
   time: {
     fontFamily: fonts.regular,
     fontSize: 12,
     color: colors.textLight,
-    marginLeft: 8,
   },
   description: {
     fontFamily: fonts.regular,

@@ -4,8 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radii } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { FoodItem } from '../data/food';
+import { useFavorites } from '../context/FavoritesContext';
 
 export default function FoodCard({ item, onPress }: { item: FoodItem; onPress?: () => void }) {
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorite = isFavorite(item.id);
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <Image source={{ uri: item.image }} style={styles.image} />
@@ -14,7 +18,13 @@ export default function FoodCard({ item, onPress }: { item: FoodItem; onPress?: 
       <View style={styles.row}>
         <Ionicons name="star" size={14} color={colors.star} />
         <Text style={styles.rating}>{item.rating}</Text>
-        <Ionicons name="heart-outline" size={14} color={colors.black} style={styles.heart} />
+        <Pressable onPress={() => toggleFavorite(item.id)} hitSlop={8} style={styles.heart}>
+          <Ionicons
+            name={favorite ? 'heart' : 'heart-outline'}
+            size={16}
+            color={favorite ? colors.primary : colors.black}
+          />
+        </Pressable>
       </View>
     </Pressable>
   );
