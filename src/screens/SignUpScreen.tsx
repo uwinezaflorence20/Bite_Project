@@ -5,18 +5,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { RootStackParamList } from '../navigation/types';
+import { useAuth } from '../context/AuthContext';
 import PrimaryButton from '../components/PrimaryButton';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SignUp'>;
 
 export default function SignUpScreen({ navigation }: Props) {
+  const { signup } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!name.trim()) {
       setError('Enter your full name');
       return;
@@ -31,10 +33,13 @@ export default function SignUpScreen({ navigation }: Props) {
     }
     setError('');
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await signup(name.trim(), email.trim(), password);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not create account');
+    } finally {
       setLoading(false);
-      navigation.replace('Main');
-    }, 900);
+    }
   };
 
   return (

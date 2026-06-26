@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useMemo, useReducer } from 'react';
-import { FoodItem } from '../data/food';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { apiFetch } from '../api/client';
+import { useAuth } from './AuthContext';
 
 export type CartLine = {
   id: string;
@@ -10,89 +11,96 @@ export type CartLine = {
   qty: number;
 };
 
-type State = { items: CartLine[] };
-
-type Action =
-  | { type: 'ADD'; item: FoodItem; qty: number }
-  | { type: 'REMOVE'; id: string }
-  | { type: 'UPDATE_QTY'; id: string; delta: number }
-  | { type: 'CLEAR' };
-
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case 'ADD': {
-      const existing = state.items.find((i) => i.id === action.item.id);
-      if (existing) {
-        return {
-          items: state.items.map((i) =>
-            i.id === action.item.id ? { ...i, qty: i.qty + action.qty } : i,
-          ),
-        };
-      }
-      return {
-        items: [
-          ...state.items,
-          {
-            id: action.item.id,
-            name: action.item.name,
-            code: action.item.code,
-            price: action.item.price,
-            image: action.item.image,
-            qty: action.qty,
-          },
-        ],
-      };
-    }
-    case 'REMOVE':
-      return { items: state.items.filter((i) => i.id !== action.id) };
-    case 'UPDATE_QTY':
-      return {
-        items: state.items.map((i) =>
-          i.id === action.id ? { ...i, qty: Math.max(1, i.qty + action.delta) } : i,
-        ),
-      };
-    case 'CLEAR':
-      return { items: [] };
-    default:
-      return state;
-  }
-}
-
-const DELIVERY_FEE = 2.5;
-
-const CartContext = createContext<{
+type CartResponse = {
   items: CartLine[];
-  addItem: (item: FoodItem, qty?: number) => void;
-  removeItem: (id: string) => void;
-  updateQty: (id: string, delta: number) => void;
-  clear: () => void;
-  totalCount: number;
   subtotal: number;
   deliveryFee: number;
   total: number;
+};
+
+const EMPTY_CART: CartResponse = { items: [], subtotal: 0, deliveryFee: 0, total: 0 };
+
+const CartContext = createContext<{
+  items: CartLine[];
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  totalCount: number;
+  loading: boolean;
+  addItem: (foodId: string, qty?: number) => Promise<void>;
+  removeItem: (foodId: string) => Promise<void>;
+  updateQty: (foodId: string, delta: number) => Promise<void>;
+  clear: () => Promise<void>;
+  reload: () => Promise<void>;
 } | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { items: [] });
+  const { user } = useAuth();
+  const [cart, setCart] = useState<CartResponse>(EMPTY_CART);
+  const [loading, setLoading] = useState(false);
 
-  const value = useMemo(() => {
-    const subtotal = state.items.reduce((sum, i) => sum + i.price * i.qty, 0);
-    const totalCount = state.items.reduce((sum, i) => sum + i.qty, 0);
-    const deliveryFee = state.items.length ? DELIVERY_FEE : 0;
-    return {
-      items: state.items,
-      addItem: (item: FoodItem, qty = 1) => dispatch({ type: 'ADD', item, qty }),
-      removeItem: (id: string) => dispatch({ type: 'REMOVE', id }),
-      updateQty: (id: string, delta: number) => dispatch({ type: 'UPDATE_QTY', id, delta }),
-      clear: () => dispatch({ type: 'CLEAR' }),
-      totalCount,
-      subtotal,
-      deliveryFee,
-      total: subtotal + deliveryFee,
-    };
-  }, [state]);
+  const reload = useCallback(async () => {
+    if (!user) {
+      setCart(EMPTY_CART);
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await apiFetch<CartResponse>('/api/cart');
+      setCart(data);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const addItem = async (foodId: string, qty = 1) => {
+    const data = await apiFetch<CartResponse>('/api/cart', { method: 'POST', body: { foodId, qty } });
+    setCart(data);
+  };
+
+  const removeItem = async (foodId: string) => {
+    const data = await apiFetch<CartResponse>(`/api/cart/${foodId}`, { method: 'DELETE' });
+    setCart(data);
+  };
+
+  const updateQty = async (foodId: string, delta: number) => {
+    const data = await apiFetch<CartResponse>(`/api/cart/${foodId}`, {
+      method: 'PATCH',
+      body: { delta },
+    });
+    setCart(data);
+  };
+
+  const clear = async () => {
+    const data = await apiFetch<CartResponse>('/api/cart', { method: 'DELETE' });
+    setCart(data);
+  };
+
+  const totalCount = cart.items.reduce((sum, i) => sum + i.qty, 0);
+
+  return (
+    <CartContext.Provider
+      value={{
+        items: cart.items,
+        subtotal: cart.subtotal,
+        deliveryFee: cart.deliveryFee,
+        total: cart.total,
+        totalCount,
+        loading,
+        addItem,
+        removeItem,
+        updateQty,
+        clear,
+        reload,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {

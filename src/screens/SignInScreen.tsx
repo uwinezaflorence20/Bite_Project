@@ -5,17 +5,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { RootStackParamList } from '../navigation/types';
+import { useAuth } from '../context/AuthContext';
 import PrimaryButton from '../components/PrimaryButton';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SignIn'>;
 
 export default function SignInScreen({ navigation }: Props) {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
       setError('Enter a valid email address');
       return;
@@ -26,10 +28,13 @@ export default function SignInScreen({ navigation }: Props) {
     }
     setError('');
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await login(email.trim(), password);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not sign in');
+    } finally {
       setLoading(false);
-      navigation.replace('Main');
-    }, 900);
+    }
   };
 
   return (

@@ -1,25 +1,46 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { apiFetch } from '../api/client';
+import { useAuth } from './AuthContext';
 
 const FavoritesContext = createContext<{
   favoriteIds: string[];
   isFavorite: (id: string) => boolean;
-  toggleFavorite: (id: string) => void;
+  toggleFavorite: (id: string) => Promise<void>;
 } | null>(null);
 
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
-  const value = useMemo(
-    () => ({
-      favoriteIds,
-      isFavorite: (id: string) => favoriteIds.includes(id),
-      toggleFavorite: (id: string) =>
-        setFavoriteIds((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id])),
-    }),
-    [favoriteIds],
-  );
+  const reload = useCallback(async () => {
+    if (!user) {
+      setFavoriteIds([]);
+      return;
+    }
+    const data = await apiFetch<string[]>('/api/favorites');
+    setFavoriteIds(data);
+  }, [user]);
 
-  return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const toggleFavorite = async (id: string) => {
+    const data = await apiFetch<string[]>(`/api/favorites/${id}`, { method: 'POST' });
+    setFavoriteIds(data);
+  };
+
+  return (
+    <FavoritesContext.Provider
+      value={{
+        favoriteIds,
+        isFavorite: (id: string) => favoriteIds.includes(id),
+        toggleFavorite,
+      }}
+    >
+      {children}
+    </FavoritesContext.Provider>
+  );
 }
 
 export function useFavorites() {
