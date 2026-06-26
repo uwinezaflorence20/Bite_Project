@@ -3,7 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { colors, radii } from '../theme/colors';
+import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { RootStackParamList } from '../navigation/types';
 
